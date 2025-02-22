@@ -1,28 +1,34 @@
-# import matplotlib.pyplot as py
-# import PIL as Image
-# import numpy as np 
+import matplotlib.pyplot as py
+from PIL import Image
+import numpy as np 
 import os
+from matplotlib import pyplot as plt
 import torchvision.datasets as torchImg
 from torch.utils.data import DataLoader
-import torchvision.transforms as transforms
-
-# Define the list of transformations to be done on image
-list_of_transformations = [
-    transforms.ToTensor(),
-]
-# Compose the list of transformations
-transform = transforms.Compose(list_of_transformations)
-
-TrainImgs = torchImg.ImageFolder(root='dataset2-master/images/TRAIN', transform=list_of_transformations)
-
-train_loader = DataLoader(TrainImgs, batch_size=64, shuffle=True)
-
-for img, label in train_loader:
+from torchvision.transforms import v2
 
 
-    
-# with os.open("dataset2-master\\images\\TRAIN\\EOSINOPHIL", 'r') as file:
-#     # Read each line in the file
-#     for line in file:
-#         # Print each line
-#         print(line)
+list_o_transformaiton = v2.Compose([
+    v2.ToTensor()
+])
+
+plotting_img = torchImg.ImageFolder(root="dataset2-master/images/TEST_SIMPLE")
+TrainImgs = torchImg.ImageFolder(root="dataset2-master/images/TEST_SIMPLE", transform=list_o_transformaiton)
+
+NUM_ROWS = 10
+NUM_COLS = 10
+
+for idx, (image, label) in enumerate(plotting_img):
+ 
+
+    plt1 = plt.subplot(NUM_ROWS, NUM_COLS, idx + 1)
+
+    image = np.array(image)
+
+    plt1.imshow(image)
+    plt1.set_title(label)
+    plt1.axis('off')
+
+
+# plt.tight_layout()
+plt.show()
