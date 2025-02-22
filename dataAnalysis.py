@@ -15,20 +15,22 @@ list_o_transformaiton = v2.Compose([
 plotting_img = torchImg.ImageFolder(root="dataset2-master/images/TEST_SIMPLE")
 TrainImgs = torchImg.ImageFolder(root="dataset2-master/images/TEST_SIMPLE", transform=list_o_transformaiton)
 
-NUM_ROWS = 10
-NUM_COLS = 10
+# NUM_ROWS = 10
+# NUM_COLS = 10
 
-for idx, (image, label) in enumerate(plotting_img):
+
+# for idx, (image, label) in enumerate(plotting_img):
  
+#     plt1 = plt.subplot(NUM_ROWS, NUM_COLS, idx + 1)
 
-    plt1 = plt.subplot(NUM_ROWS, NUM_COLS, idx + 1)
+#     image = np.array(image)
 
-    image = np.array(image)
+#     plt1.imshow(image)
+#     plt1.set_title(label)
+#     plt1.axis('off')
 
-    plt1.imshow(image)
-    plt1.set_title(label)
-    plt1.axis('off')
+# # plt.tight_layout()
+# plt.show()
 
-
-# plt.tight_layout()
-plt.show()
+for idx, (image, label) in enumerate(TrainImgs):
+    print(f"Image {idx}: Tensor size = {image.shape}")
