@@ -29,6 +29,6 @@ for idx, (image, label) in enumerate(plotting_img):
     plt1.set_title(label)
     plt1.axis('off')
 
-
+# hello there
 # plt.tight_layout()
 plt.show()
