@@ -1,15 +1,11 @@
-import matplotlib.pyplot as py
-from PIL import Image
 import numpy as np 
-import os
 from matplotlib import pyplot as plt
 import torchvision.datasets as torchImg
-from torch.utils.data import DataLoader
 from torchvision.transforms import v2
 
 #############################################
 # False to not show images. True otherwise.
-showImgs = False
+showImgs = True
 #############################################
 
 list_o_transformaiton = v2.Compose([
@@ -39,57 +35,59 @@ TEST_NUM_COLS = 10
 
 # Plot all the images using matplotlib
 # in a 10x10 figure
-for idx, (image, label) in enumerate(testSimplePlotImgs):
-    plot = plt.subplot(SIMPLE_NUM_ROWS, SIMPLE_NUM_COLS, (idx % 10) + 1)
-    image = np.array(image)
-    plot.imshow(image)
-    plot.set_adjustable('datalim', share=True)
-    plot.set_xlim(left=0,right=350)
-    plot.set_ylim(bottom=0, top=300)
-    plot.axis('off')
-    
-    if ((idx % 10) + 1 == 10):
-        plt.tight_layout()
-        if(showImgs): plt.show()
-        plt.clf() # clears the entire current figure with all its axes, but leaves the window opened, such that it may be reused for other plots.
-plt.tight_layout()
-if(showImgs): plt.show()
+if showImgs:
+    for idx, (image, label) in enumerate(testSimplePlotImgs):
+        plot = plt.subplot(SIMPLE_NUM_ROWS, SIMPLE_NUM_COLS, (idx % 10) + 1)
+        image = np.array(image)
+        plot.imshow(image)
+        plot.set_adjustable('datalim', share=True)
+        plot.set_xlim(left=0,right=350)
+        plot.set_ylim(bottom=0, top=300)
+        plot.axis('off')
+        
+        if ((idx % 10) + 1 == 10):
+            plt.tight_layout()
+            plt.show()
+            plt.clf() # clears the entire current figure with all its axes, but leaves the window opened, such that it may be reused for other plots.
+    plt.tight_layout()
+    plt.show()
 
 
-for idx, (image, label) in enumerate(trainPlotImgs):
-    plot = plt.subplot(TRAIN_NUM_ROWS, TRAIN_NUM_COLS, (idx % 100) + 1)
-    image = np.array(image)
-    plot.imshow(image)
-    plot.set_adjustable('datalim', share=True)
-    plot.set_xlim(left=0,right=350)
-    plot.set_ylim(bottom=0, top=300)
-    plot.axis('off')
-    
-    if (idx % 100) + 1 == 100:
-        plt.tight_layout()
-        if(showImgs): plt.show()
-        plt.clf() # clears the entire current figure with all its axes, but leaves the window opened, such that it may be reused for other plots.
-plt.tight_layout()
-if(showImgs): plt.show()
+    for idx, (image, label) in enumerate(trainPlotImgs):
+        plot = plt.subplot(TRAIN_NUM_ROWS, TRAIN_NUM_COLS, (idx % 100) + 1)
+        image = np.array(image)
+        plot.imshow(image)
+        plot.set_adjustable('datalim', share=True)
+        plot.set_xlim(left=0,right=350)
+        plot.set_ylim(bottom=0, top=300)
+        plot.axis('off')
+        
+        if (idx % 100) + 1 == 100:
+            plt.tight_layout()
+            plt.show()
+            plt.clf() # clears the entire current figure with all its axes, but leaves the window opened, such that it may be reused for other plots.
+    plt.tight_layout()
+    plt.show()
 
-for idx, (image, label) in enumerate(testPlotImgs):
-    plot = plt.subplot(TRAIN_NUM_ROWS, TRAIN_NUM_COLS, (idx % 100) + 1)
-    image = np.array(image)
-    plot.imshow(image)
-    plot.set_adjustable('datalim', share=True)
-    plot.set_xlim(left=0,right=350)
-    plot.set_ylim(bottom=0, top=300)
-    plot.axis('off')
-    
-    if (idx % 100) + 1 == 100:
-        plt.tight_layout()
-        if(showImgs): plt.show()
-        plt.clf() # clears the entire current figure with all its axes, but leaves the window opened, such that it may be reused for other plots.
-plt.tight_layout()
-if(showImgs): plt.show()
+    for idx, (image, label) in enumerate(testPlotImgs):
+        plot = plt.subplot(TRAIN_NUM_ROWS, TRAIN_NUM_COLS, (idx % 100) + 1)
+        image = np.array(image)
+        plot.imshow(image)
+        plot.set_adjustable('datalim', share=True)
+        plot.set_xlim(left=0,right=350)
+        plot.set_ylim(bottom=0, top=300)
+        plot.axis('off')
+        
+        if (idx % 100) + 1 == 100:
+            plt.tight_layout()
+            plt.show()
+            plt.clf() # clears the entire current figure with all its axes, but leaves the window opened, such that it may be reused for other plots.
+    plt.tight_layout()
+    plt.show()
 
 # Check the shape of all the images and see of they are equal
-bool1 = True
+# and set bool 1, 2, 3 to false to show there are imgs with unequal shapes
+bool1 = False
 shape = 2
 for idx, (image, label) in enumerate(testSimpleImgs):
     if(idx == 0):
@@ -97,7 +95,7 @@ for idx, (image, label) in enumerate(testSimpleImgs):
     # print(f"Image {idx}: Tensor size = {image.shape}")
 
     if shape != image.shape:
-        bool1 = False
+        bool1 = True
         break
     
 bool2 = True
@@ -121,4 +119,17 @@ for idx, (image, label) in enumerate(TestImgs):
     if shape != image.shape:
         bool3 = False
         break
+
+# Print which dataset is of the shape listed and which (if any) 
+# have imgs with unequal shapes
+if (bool1):
+    print(f"Test Simple Imgs is of shape: {shape}")
+else:
+    print("Test Simple does not have a valid shape")
+if (bool2):
+    print(f"Train Imgs is of shape: {shape}")
+else:
+    print("Test Simple does not have a valid shape")
+if (bool3):
+    print(f"Test Imgs is of shape: {shape}")
 
