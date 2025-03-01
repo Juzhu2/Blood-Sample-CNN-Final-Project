@@ -8,19 +8,28 @@ from torchvision.transforms import v2
 showImgs = True
 #############################################
 
-list_o_transformaiton = v2.Compose([
-    v2.ToTensor()
+# rng = np.random.default_rng()
+# random_int = rng.integers(0, 10)
+# if random_int % 2 == 0:
+#     random_int += 1
+
+list_o_transformation = v2.Compose([
+    v2.ToTensor(),
+    v2.GaussianBlur(kernel_size=5, sigma=(0.0001, 10)), 
+    v2.RandomGrayscale(p=0.2),
+    v2.ColorJitter(brightness=(0.9, 1.1)), 
+    v2.ToPILImage()
 ])
 
 # Make ImageFolderClasses for all 3 dataset folders --> (TEST)(TEST_SIMPLE)(TRAIN)
 # PlotImg: for Matplotlib Visual Inspection
-testSimplePlotImgs = torchImg.ImageFolder(root="dataset2-master/images/TEST_SIMPLE")
-trainPlotImgs = torchImg.ImageFolder(root="dataset2-master/images/TRAIN")
-testPlotImgs = torchImg.ImageFolder(root="dataset2-master/images/TEST")
+testSimplePlotImgs = torchImg.ImageFolder(root="dataset2-master/images/TEST_SIMPLE", transform=list_o_transformation)
+trainPlotImgs = torchImg.ImageFolder(root="dataset2-master/images/TRAIN", transform=list_o_transformation)
+testPlotImgs = torchImg.ImageFolder(root="dataset2-master/images/TEST", transform= list_o_transformation)
 
-testSimpleImgs = torchImg.ImageFolder(root="dataset2-master/images/TEST_SIMPLE", transform=list_o_transformaiton)
-TrainImgs = torchImg.ImageFolder(root="dataset2-master/images/TRAIN", transform=list_o_transformaiton)
-TestImgs = torchImg.ImageFolder(root="dataset2-master/images/TEST", transform=list_o_transformaiton)
+testSimpleImgs = torchImg.ImageFolder(root="dataset2-master/images/TEST_SIMPLE", transform=list_o_transformation)
+TrainImgs = torchImg.ImageFolder(root="dataset2-master/images/TRAIN", transform=list_o_transformation)
+TestImgs = torchImg.ImageFolder(root="dataset2-master/images/TEST", transform=list_o_transformation)
 
 # number of rows and columns in Test_Simple_Imgs
 SIMPLE_NUM_ROWS = 2
