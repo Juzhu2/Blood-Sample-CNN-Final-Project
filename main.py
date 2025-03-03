@@ -14,7 +14,7 @@ list_o_transformation = v2.Compose([
     v2.GaussianBlur(kernel_size=3, sigma=5), 
     v2.RandomGrayscale(p=0.3),
     v2.ColorJitter(brightness=(0.5, 1.5))   # *  Possibly change the Hue, Saturation, and Contrast
-                `                           # of the imgs  *
+                                            # of the imgs  *
 ])
 
 # Create out ImageFolder Classes out of our dataset
