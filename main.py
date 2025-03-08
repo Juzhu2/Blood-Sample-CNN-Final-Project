@@ -20,17 +20,17 @@ class ccnModel(nn.Module):
         self.pooling = nn.MaxPool2d(2,2)
 
         # Convultion layers for CNN
-        self.layer1 = nn.Conv2d(in_channels=3, out_channels=20, kernel_size=5, padding=2)
-        self.layer2 = nn.Conv2d(in_channels=20,out_channels=100, kernel_size=5, padding=2)
-        self.layer3 = nn.Conv2d(in_channels=100,out_channels=75, kernel_size=5, padding= 2)
-        self.layer4 = nn.Conv2d(in_channels=75,out_channels=50, kernel_size=5, padding=2) 
+        self.layer1 = nn.Conv2d(in_channels=3, out_channels=10, kernel_size=5, padding=2)
+        self.layer2 = nn.Conv2d(in_channels=10,out_channels=20, kernel_size=5, padding=2)
+        self.layer3 = nn.Conv2d(in_channels=20,out_channels=15, kernel_size=5, padding= 2)
+        self.layer4 = nn.Conv2d(in_channels=15,out_channels=2, kernel_size=5, padding=2) 
 
         # This is the linear layer which we would later use after flattening our convolution layers at the end
-        self.linearlayer1 = nn.Linear(240000, 100000)
-        self.linearlayer2 = nn.Linear(100000, 10000)
-        self.linearlayer3 = nn.Linear(10000, 1000)
-        self.linearlayer4 = nn.Linear(1000, 100)
-        self.linearlayer5 = nn.Linear(100, 4)
+        self.linearlayer1 = nn.Linear(9600, 1000)
+        self.linearlayer2 = nn.Linear(1000, 500)
+        self.linearlayer3 = nn.Linear(500, 250)
+        self.linearlayer4 = nn.Linear(250, 70)
+        self.linearlayer5 = nn.Linear(70, 4)
 
     def forward(self, input):
         
