@@ -6,7 +6,9 @@ from torch.utils.data import DataLoader
 import torch.nn as nn
 import torch
 import torch.optim as optim
+import wandb
 
+run = wandb.init(project="Blood-Sample-Disease-Project", name="Run")
 Labels = ["EOSINOPHIL", "LYMPHOCYTE", "MONOCYTE", "NEUTROPHIL"]
 
 class ccnModel(nn.Module):
