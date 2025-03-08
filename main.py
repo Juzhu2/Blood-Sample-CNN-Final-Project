@@ -48,7 +48,7 @@ class ccnModel(nn.Module):
         partial = self.pooling(partial)
         
         # Flattens the convolution layer in which we pass through the linear layer that would output 4 values
-        partial = torch.flatten(partial)
+        partial = torch.flatten(partial, start_dim=1)
         partial = self.linearlayer1(partial)
         partial = self.activation(partial)
         partial = self.linearlayer2(partial)
@@ -110,6 +110,13 @@ optimizer = optim.Adam(Img_Model.parameters(), lr) # create the optimizer ----->
         optimizer.step()                                 
         optimizer.zero_grad()  
 """
+
+def compute_accuracy(predictions, labels):
+    predicted_classes = torch.argmax(predictions, dim=1)  # Get predicted class indices
+    correct = (predicted_classes == labels).sum().item()  # Count correct predictionsgi
+    total = labels.size(0)  # Total number of samples
+    accuracy = (correct / total) * 100  # Convert to percentage
+    return accuracy
 
 
 # Train: Run through the epoch and batches and also logs it into the wandb
