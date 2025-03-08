@@ -113,7 +113,7 @@ optimizer = optim.Adam(Img_Model.parameters(), lr) # create the optimizer ----->
 
 def compute_accuracy(predictions, labels):
     predicted_classes = torch.argmax(predictions, dim=1)  # Get predicted class indices
-    correct = (predicted_classes == labels).sum().item()  # Count correct predictionsgi
+    correct = (predicted_classes == labels).sum().item()  # Count correct predictions
     total = labels.size(0)  # Total number of samples
     accuracy = (correct / total) * 100  # Convert to percentage
     return accuracy
@@ -125,7 +125,9 @@ for i in range(EPOCH):
         prediction = Img_Model(image)
         loss = lossFunc(prediction, label)
 
-        print(f"Epoch:: {EPOCH}   Loss:: {loss}   Image:: {image.shape}")
+        accuracy = compute_accuracy(prediction, label)
+
+        print(f"Epoch:: {EPOCH}   Loss:: {loss}   Accuracy::{accuracy}  Image:: {image.shape}")
 
         run.log({"train loss": loss})
         loss.backward()                                  
