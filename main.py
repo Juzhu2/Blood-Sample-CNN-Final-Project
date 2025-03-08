@@ -3,8 +3,58 @@ from matplotlib import pyplot as plt
 import torchvision.datasets as torchImg
 from torchvision.transforms import v2
 from torch.utils.data import DataLoader
-from torch import nn
+import torch.nn as nn
+import torch
+import torch.optim as optim
 
+Labels = ["EOSINOPHIL", "LYMPHOCYTE", "MONOCYTE", "NEUTROPHIL"]
+
+class ccnModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        # WRITE CODE HERE: initialize layers, activations
+        # This creates 5 layers where it goes from 3 input and passes through the width of 3 for each layer but near the end it goes to 1 width
+        self.activation  = nn.ReLU()
+        self.pooling = nn.MaxPool2d(2,2)
+        self.layer1 = nn.Conv2d(in_channels=3, out_channels=20, kernel_size=5, padding=2)
+        self.layer2 = nn.Conv2d(in_channels=20,out_channels=100, kernel_size=5, padding=2)
+        self.layer3 = nn.Conv2d(in_channels=100,out_channels=75, kernel_size=5, padding= 2)
+        self.layer4 = nn.Conv2d(in_channels=75,out_channels=50, kernel_size=5, padding=2) 
+
+        self.linearlayer1 = nn.Linear(240000, 100000)
+        self.linearlayer2 = nn.Linear(100000, 10000)
+        self.linearlayer3 = nn.Linear(10000, 1000)
+        self.linearlayer4 = nn.Linear(1000, 100)
+        self.linearlayer5 = nn.Linear(100, 4)
+
+    def forward(self, input):
+        # WRITE CODE HERE: pass input through layers and activations and return it
+        partial = self.layer1(input)
+        partial = self.activation(partial)
+        partial = self.layer2(partial)
+        partial = self.activation(partial)
+        partial = self.pooling(partial)
+
+        partial = self.layer3(partial)
+        partial = self.activation(partial)
+        partial = self.layer4(partial)
+        partial = self.activation(partial)
+        partial = self.pooling(partial)
+        
+
+        partial = torch.flatten(partial)
+        partial = self.linearlayer1(partial)
+        partial = self.activation(partial)
+        partial = self.linearlayer2(partial)
+        partial = self.activation(partial)
+        partial = self.linearlayer3(partial)
+        partial = self.activation(partial)
+        partial = self.linearlayer4(partial)
+        partial = self.activation(partial)
+        final = self.linearlayer5(partial)
+
+
+        return final
 
 # List of transformations 
 # Gausian Blur 
@@ -30,69 +80,51 @@ testSimpleData = DataLoader(testSimpleImgs, batch_size=32, shuffle=True)
 trainingData = DataLoader(TrainImgs, batch_size=32, shuffle=True)
 testData = DataLoader(TestImgs, batch_size=32, shuffle=True)
 
-class CNNModel(nn.Module):
-    def __init__(self):
-        super().__init__()
-        # WRITE CODE HERE: initialize layers, activations
-        # This creates 5 layers where it goes from 3 input and passes through the width of 3 for each layer but near the end it goes to 1 width
-        self.activation  = nn.ReLU()
-        pooling = nn.MaxPool2d(2,2)
-        self.layer1 = nn.Conv2d(in_channels=3, out_channels=20, kernel_size=5, padding=2)
-        self.layer2 = nn.Conv2d(in_channels=20,out_channels=100, kernel_size=5, padding=2)
-        self.layer3 = nn.Conv2d(in_channels=100,out_channels=75, kernel_size=5, padding= 2)
-        self.layer4 = nn.Conv2d(in_channels=75,out_channels=50, kernel_size=5, padding=2) 
-
-        self.linearlayer1 = nn.Linear(240000, 100000)
-        self.linearlayer2 = nn.Linear(100000, 10000)
-        self.linearlayer3 = nn.Linear(10000, 1000)
-        self.linearlayer4 = nn.Linear(1000, 100)
-        self.linearlayer5 = nn.Linear(100, 4)
-
-        def forward(self, input):
-            # WRITE CODE HERE: pass input through layers and activations and return it
-            partial = self.layer1(input)
-            partial = self.activation(partial)
-            partial = self.layer2(partial)
-            partial = self.activation(partial)
-            partial = self.pooling(partial)
-
-            partial = self.layer3(partial)
-            partial = self.activation(partial)
-            partial = self.layer4(partial)
-            partial = self.activation(partial)
-            partial = self.pooling(partial)
             
-            partial = partial.flatten(start_dim=1)
-            partial = self.linearlayer1(partial)
-            partial = self.activation(partial)
-            partial = self.linearlayer2(partial)
-            partial = self.activation(partial)
-            partial = self.linearlayer3(partial)
-            partial = self.activation(partial)
-            partial = self.linearlayer4(partial)
-            partial = self.activation(partial)
-            final = self.linearlayer5(partial)
+EPOCH = 10
+lr = 0.01
+
+Img_Model = ccnModel()
+lossFunc = nn.CrossEntropyLoss()
+optimizer = optim.Adam(Img_Model.parameters(), lr)                     # create the optimizer -----> ADAM
 
 
-            return final
-            
-
-
+"""
 # Loops that prints the index with the img and label shapes.cd
 # Test Simple: test loop
-for idx,(image, label) in enumerate(testSimpleData):
-    print(f"idx: {idx}")
-    print(f'Image: {image.shape}')
-    print(f'Label: {label.shape}')
-    
+    for idx,(image, label) in enumerate(testSimpleData):
+        prediction = Img_Model(image)
+        loss = lossFunc(prediction, label)
+        
+        print(f"loss: {loss}")
+        print(f"idx: {idx}")
+        print(f'Image: {image.shape}')
+        
+        loss.backward()                                  
+        optimizer.step()                                 
+        optimizer.zero_grad()  
+"""
+
+
 # Train: Test loop
-for idx,(image, label) in enumerate(trainingData):
-    print(f"idx: {idx}")
-    print(f'Image: {image.shape}')
-    print(f'Label: {label.shape}')
+for i in range(EPOCH):
+    for idx,(image, label) in enumerate(trainingData):
+        prediction = Img_Model(image)
+        loss = lossFunc(prediction, label)
+
+        print(f"Epoch:: {EPOCH}   Loss:: {loss}   Image:: {image.shape}")
+        
+        loss.backward()                                  
+        optimizer.step()                                 
+        optimizer.zero_grad()  
 
 # Test: Test loop
-for image, label in testData:
-    print(f"idx: {idx}")
-    print(f'Image: {image.shape}')
-    print(f'Label: {label.shape}')
+with torch.no_grad():
+    for image, label in testData:
+        prediction = Img_Model(image)
+        loss = lossFunc(prediction, label)
+        
+        print(f"loss: {loss}")
+        print(f"idx: {idx}")
+        print(f'Image: {image.shape}')
+    
