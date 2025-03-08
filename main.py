@@ -127,7 +127,7 @@ for i in range(EPOCH):
 
         accuracy = compute_accuracy(prediction, label)
 
-        print(f"Epoch:: {EPOCH}   Loss:: {loss}   Accuracy::{accuracy}  Image:: {image.shape}")
+        print(f"Epoch:: {i}   Loss:: {loss}   Accuracy:: {accuracy}%  Image:: {image.shape}")
 
         run.log({"train loss": loss})
         loss.backward()                                  
@@ -139,8 +139,8 @@ with torch.no_grad():
     for image, label in testData:
         prediction = Img_Model(image)
         loss = lossFunc(prediction, label)
-        
-        print(f"loss: {loss}")
-        print(f"idx: {idx}")
-        print(f'Image: {image.shape}')
+        accuracy = compute_accuracy(prediction, label)
+
+        print(f"Loss:: {loss}   Accuracy::{accuracy}  Image:: {image.shape}")
+
     
