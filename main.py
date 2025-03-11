@@ -153,5 +153,5 @@ with torch.no_grad():
         accuracy = compute_accuracy(prediction, label)
 
         print(f"Loss:: {loss}   Accuracy::{accuracy}  Image:: {image.shape}")
-
-     
+        run.log({"test loss": loss})
+    
