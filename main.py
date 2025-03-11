@@ -12,6 +12,14 @@ import wandb
 run = wandb.init(project="Blood-Sample-Disease-Project", name="Run")
 Labels = ["EOSINOPHIL", "LYMPHOCYTE", "MONOCYTE", "NEUTROPHIL"]
 
+def compute_accuracy(predictions, labels):
+    predicted_classes = torch.argmax(predictions, dim=1)  # Get predicted class indices
+    correct = (predicted_classes == labels).sum().item()  # Count correct predictions
+    total = labels.size(0)  # Total number of samples
+    accuracy = (correct / total) * 100  # Convert to percentage
+    return accuracy
+
+
 class ccnModel(nn.Module):
     def __init__(self):
         super().__init__()
@@ -111,12 +119,6 @@ optimizer = optim.Adam(Img_Model.parameters(), lr) # create the optimizer ----->
         optimizer.zero_grad()  
 """
 
-def compute_accuracy(predictions, labels):
-    predicted_classes = torch.argmax(predictions, dim=1)  # Get predicted class indices
-    correct = (predicted_classes == labels).sum().item()  # Count correct predictions
-    total = labels.size(0)  # Total number of samples
-    accuracy = (correct / total) * 100  # Convert to percentage
-    return accuracy
 
 
 # Train: Run through the epoch and batches and also logs it into the wandb
@@ -127,7 +129,7 @@ for i in range(EPOCH):
 
         accuracy = compute_accuracy(prediction, label)
 
-        print(f"Epoch:: {EPOCH}   Loss:: {loss}   Accuracy::{accuracy}  Image:: {image.shape}")
+        print(f"Epoch:: {i}   Loss:: {loss}   Accuracy:: {accuracy}%  Image:: {image.shape}")
 
         run.log({"train loss": loss})
         loss.backward()                                  
@@ -136,16 +138,11 @@ for i in range(EPOCH):
 
 # Test: Test loop
 with torch.no_grad():
-    for i in range(EPOCH):
-        for idx,(image, label) in enumerate(testData):
-            prediction = Img_Model(image)
-            loss = lossFunc(prediction, label)
+    for image, label in testData:
+        prediction = Img_Model(image)
+        loss = lossFunc(prediction, label)
+        accuracy = compute_accuracy(prediction, label)
 
-            accuracy = compute_accuracy(prediction, label)
-
-            print(f"Epoch:: {EPOCH}   Loss:: {loss}   Accuracy::{accuracy}  Image:: {image.shape}")
-
-            run.log({"train loss": loss})
-
+        print(f"Loss:: {loss}   Accuracy::{accuracy}  Image:: {image.shape}")
 
     
