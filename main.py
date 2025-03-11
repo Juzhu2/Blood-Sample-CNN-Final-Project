@@ -1,5 +1,5 @@
 import numpy as np 
-from matplotlib import pyplot as plt
+# from matplotlib import pyplot as plt
 import torchvision.datasets as torchImg
 from torchvision.transforms import v2
 from torch.utils.data import DataLoader
@@ -76,16 +76,16 @@ class ccnModel(nn.Module):
 # ColorJitter
 list_o_transformation = v2.Compose([
     v2.ToTensor(),
-    v2.GaussianBlur(kernel_size=3, sigma=5), 
-    v2.RandomGrayscale(p=0.3),
-    v2.ColorJitter(brightness=(0.5, 1.5))   # *  Possibly change the Hue, Saturation, and Contrast
+    # v2.GaussianBlur(kernel_size=3, sigma=5), 
+    # v2.RandomGrayscale(p=0.3),
+    # v2.ColorJitter(brightness=(0.5, 1.5))   # *  Possibly change the Hue, Saturation, and Contrast
                                             # of the imgs  *
 ])
 
 # Create out ImageFolder Classes out of our dataset
 # Test Simple is a small (~60) set of imgs 
 # Train and Test are our actual datasets 
-testSimpleImgs = torchImg.ImageFolder(root="dataset2-master/images/TEST_SIMPLE", transform=list_o_transformation)
+testSimpleImgs = torchImg.ImageFolder(root="dataset2-master/images/TEST_SIMPLE", transform=list_o_transformation,)
 TrainImgs = torchImg.ImageFolder(root="dataset2-master/images/TRAIN", transform=list_o_transformation)
 TestImgs = torchImg.ImageFolder(root="dataset2-master/images/TEST", transform=list_o_transformation)
 
@@ -94,11 +94,18 @@ testSimpleData = DataLoader(testSimpleImgs, batch_size=32, shuffle=True)
 trainingData = DataLoader(TrainImgs, batch_size=32, shuffle=True)
 testData = DataLoader(TestImgs, batch_size=32, shuffle=True)
 
-            
 EPOCH = 10 # Epoch used to run through the model
 lr = 0.01 # Learning rate for our optimizer
 
 Img_Model = ccnModel()
+device = ''
+if torch.cuda.is_available():
+    device = 'cuda'
+else:
+    device = 'cpu' 
+
+Img_Model.to(device)
+
 lossFunc = nn.CrossEntropyLoss()
 optimizer = optim.Adam(Img_Model.parameters(), lr) # create the optimizer -----> ADAM
 
@@ -124,6 +131,8 @@ optimizer = optim.Adam(Img_Model.parameters(), lr) # create the optimizer ----->
 # Train: Run through the epoch and batches and also logs it into the wandb
 for i in range(EPOCH):
     for idx,(image, label) in enumerate(trainingData):
+        image = image.to(device)
+        label = label.to(device)
         prediction = Img_Model(image)
         loss = lossFunc(prediction, label)
 
@@ -131,7 +140,7 @@ for i in range(EPOCH):
 
         print(f"Epoch:: {i}   Loss:: {loss}   Accuracy:: {accuracy}%  Image:: {image.shape}")
 
-        run.log({"train loss": loss})
+        run.log({"train loss": loss, "index": idx})
         loss.backward()                                  
         optimizer.step()                                 
         optimizer.zero_grad()  
@@ -145,4 +154,4 @@ with torch.no_grad():
 
         print(f"Loss:: {loss}   Accuracy::{accuracy}  Image:: {image.shape}")
 
-    
+     
