@@ -12,6 +12,14 @@ import wandb
 run = wandb.init(project="Blood-Sample-Disease-Project", name="Run")
 Labels = ["EOSINOPHIL", "LYMPHOCYTE", "MONOCYTE", "NEUTROPHIL"]
 
+def compute_accuracy(predictions, labels):
+    predicted_classes = torch.argmax(predictions, dim=1)  # Get predicted class indices
+    correct = (predicted_classes == labels).sum().item()  # Count correct predictions
+    total = labels.size(0)  # Total number of samples
+    accuracy = (correct / total) * 100  # Convert to percentage
+    return accuracy
+
+
 class ccnModel(nn.Module):
     def __init__(self):
         super().__init__()
@@ -111,12 +119,6 @@ optimizer = optim.Adam(Img_Model.parameters(), lr) # create the optimizer ----->
         optimizer.zero_grad()  
 """
 
-def compute_accuracy(predictions, labels):
-    predicted_classes = torch.argmax(predictions, dim=1)  # Get predicted class indices
-    correct = (predicted_classes == labels).sum().item()  # Count correct predictions
-    total = labels.size(0)  # Total number of samples
-    accuracy = (correct / total) * 100  # Convert to percentage
-    return accuracy
 
 
 # Train: Run through the epoch and batches and also logs it into the wandb
