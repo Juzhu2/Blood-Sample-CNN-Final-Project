@@ -26,21 +26,25 @@ class ccnModel(nn.Module):
         # Initalizing the acitivation and pooling
         self.activation  = nn.ReLU()
         self.pooling = nn.MaxPool2d(2,2)
+    
 
         # Convultion layers for CNN
         self.layer1 = nn.Conv2d(in_channels=3, out_channels=10, kernel_size=5, padding=2)
         self.layer2 = nn.Conv2d(in_channels=10,out_channels=50, kernel_size=5, padding=2)
         self.layer3 = nn.Conv2d(in_channels=50,out_channels=100, kernel_size=5, padding= 2)
-        self.layer4 = nn.Conv2d(in_channels=100,out_channels=50, kernel_size=5, padding=2) 
-        self.layer5 = nn.Conv2d(in_channels=50,out_channels=25, kernel_size=5, padding=2) 
-        self.layer6 = nn.Conv2d(in_channels=25,out_channels=2, kernel_size=5, padding=2) 
+        self.layer4 = nn.Conv2d(in_channels=100,out_channels=200, kernel_size=5, padding=2) 
+        self.layer5 = nn.Conv2d(in_channels=200,out_channels=300, kernel_size=5, padding=2) 
+        self.layer6 = nn.Conv2d(in_channels=300,out_channels=100, kernel_size=5, padding=2) 
 
         # This is the linear layer which we would later use after flattening our convolution layers at the end
-        self.linearlayer1 = nn.Linear(2400, 1000)
-        self.linearlayer2 = nn.Linear(1000, 500)
-        self.linearlayer3 = nn.Linear(500, 250)
-        self.linearlayer4 = nn.Linear(250, 70)
-        self.linearlayer5 = nn.Linear(70, 4)
+        self.linearlayer1 = nn.Linear(100 * 30 * 40, 5000)
+        self.linearlayer2 = nn.Linear(5000, 3000)
+        self.linearlayer3 = nn.Linear(3000, 2000)
+        self.linearlayer4 = nn.Linear(2000, 1000)
+        self.linearlayer5 = nn.Linear(1000, 500)
+        self.linearlayer6 = nn.Linear(500, 250)
+        self.linearlayer7 = nn.Linear(250, 70)
+        self.linearlayer8 = nn.Linear(70, 4)
 
     def forward(self, input):
         
@@ -49,14 +53,12 @@ class ccnModel(nn.Module):
         partial = self.activation(partial)
         partial = self.layer2(partial)
         partial = self.activation(partial)
-        partial = self.pooling(partial)
-
+        partial = self.pooling(partial) 
         partial = self.layer3(partial)
         partial = self.activation(partial)
         partial = self.layer4(partial)
         partial = self.activation(partial)
         partial = self.pooling(partial)
-
         partial = self.layer5(partial)
         partial = self.activation(partial)
         partial = self.layer6(partial)
@@ -73,9 +75,14 @@ class ccnModel(nn.Module):
         partial = self.activation(partial)
         partial = self.linearlayer4(partial)
         partial = self.activation(partial)
-        final = self.linearlayer5(partial)
-
-
+        partial = self.linearlayer5(partial)
+        partial = self.activation(partial)
+        partial = self.linearlayer6(partial)
+        partial = self.activation(partial)
+        partial = self.linearlayer7(partial)
+        partial = self.activation(partial)
+        final = self.linearlayer8(partial)
+        
         return final
 
 # List of transformations 
@@ -87,6 +94,7 @@ list_o_transformation = v2.Compose([
     v2.GaussianBlur(kernel_size=3, sigma=5), 
     v2.RandomGrayscale(p=0.3),
     v2.ColorJitter(brightness=(0.5, 1.5))   # *  Possibly change the Hue, Saturation, and Contrast
+
                                             # of the imgs  *
 ])
 
@@ -102,8 +110,8 @@ testSimpleData = DataLoader(testSimpleImgs, batch_size=32, shuffle=True)
 trainingData = DataLoader(TrainImgs, batch_size=32, shuffle=True)
 testData = DataLoader(TestImgs, batch_size=32, shuffle=True)
 
-EPOCH = 10 # Epoch used to run through the model
-lr = 0.01 # Learning rate for our optimizer
+EPOCH = 100 # Epoch used to run through the model
+lr = 0.001 # Learning rate for our optimizer
 
 Img_Model = ccnModel()
 device = ''
@@ -115,7 +123,8 @@ else:
 Img_Model.to(device)
 
 lossFunc = nn.CrossEntropyLoss()
-optimizer = optim.Adam(Img_Model.parameters(), lr) # create the optimizer -----> ADAM
+
+optimizer = optim.Adam(Img_Model.parameters(), lr=lr)
 
 
 """
@@ -151,15 +160,17 @@ for i in range(EPOCH):
         run.log({"train loss": loss, "index": idx})
         loss.backward()                                  
         optimizer.step()                                 
-        optimizer.zero_grad()  
+        optimizer.zero_grad() 
+ 
 
+'''
 # Test: Test loop
-with torch.no_grad():
-    for image, label in testData:
-        prediction = Img_Model(image)
-        loss = lossFunc(prediction, label)
-        accuracy = compute_accuracy(prediction, label)
+for image, label in testData:
+    prediction = Img_Model(image)
+    loss = lossFunc(prediction, label)
+    accuracy = compute_accuracy(prediction, label)
 
-        print(f"Loss:: {loss}   Accuracy::{accuracy}  Image:: {image.shape}")
-        run.log({"test loss": loss})
+    print(f"Loss:: {loss}   Accuracy::{accuracy}  Image:: {image.shape}")
+    run.log({"test loss": loss})
     
+'''
