@@ -29,12 +29,14 @@ class ccnModel(nn.Module):
 
         # Convultion layers for CNN
         self.layer1 = nn.Conv2d(in_channels=3, out_channels=10, kernel_size=5, padding=2)
-        self.layer2 = nn.Conv2d(in_channels=10,out_channels=20, kernel_size=5, padding=2)
-        self.layer3 = nn.Conv2d(in_channels=20,out_channels=15, kernel_size=5, padding= 2)
-        self.layer4 = nn.Conv2d(in_channels=15,out_channels=2, kernel_size=5, padding=2) 
+        self.layer2 = nn.Conv2d(in_channels=10,out_channels=50, kernel_size=5, padding=2)
+        self.layer3 = nn.Conv2d(in_channels=50,out_channels=100, kernel_size=5, padding= 2)
+        self.layer4 = nn.Conv2d(in_channels=100,out_channels=50, kernel_size=5, padding=2) 
+        self.layer5 = nn.Conv2d(in_channels=50,out_channels=25, kernel_size=5, padding=2) 
+        self.layer6 = nn.Conv2d(in_channels=25,out_channels=2, kernel_size=5, padding=2) 
 
         # This is the linear layer which we would later use after flattening our convolution layers at the end
-        self.linearlayer1 = nn.Linear(9600, 1000)
+        self.linearlayer1 = nn.Linear(2400, 1000)
         self.linearlayer2 = nn.Linear(1000, 500)
         self.linearlayer3 = nn.Linear(500, 250)
         self.linearlayer4 = nn.Linear(250, 70)
@@ -52,6 +54,12 @@ class ccnModel(nn.Module):
         partial = self.layer3(partial)
         partial = self.activation(partial)
         partial = self.layer4(partial)
+        partial = self.activation(partial)
+        partial = self.pooling(partial)
+
+        partial = self.layer5(partial)
+        partial = self.activation(partial)
+        partial = self.layer6(partial)
         partial = self.activation(partial)
         partial = self.pooling(partial)
         
@@ -76,9 +84,9 @@ class ccnModel(nn.Module):
 # ColorJitter
 list_o_transformation = v2.Compose([
     v2.ToTensor(),
-    # v2.GaussianBlur(kernel_size=3, sigma=5), 
-    # v2.RandomGrayscale(p=0.3),
-    # v2.ColorJitter(brightness=(0.5, 1.5))   # *  Possibly change the Hue, Saturation, and Contrast
+    v2.GaussianBlur(kernel_size=3, sigma=5), 
+    v2.RandomGrayscale(p=0.3),
+    v2.ColorJitter(brightness=(0.5, 1.5))   # *  Possibly change the Hue, Saturation, and Contrast
                                             # of the imgs  *
 ])
 
