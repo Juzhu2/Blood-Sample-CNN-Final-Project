@@ -7,6 +7,7 @@ import torch.nn as nn
 import torch
 import torch.optim as optim
 import wandb
+import torch.nn.functional as F
 
 #This should initalize the wandb so that it can be graph and compared to other runs
 run = wandb.init(project="Blood-Sample-Disease-Project", name="Run")
@@ -19,6 +20,33 @@ def compute_accuracy(predictions, labels):
     accuracy = (correct / total) * 100  # Convert to percentage
     return accuracy
 
+
+class FocalLoss(nn.Module):
+    def __init__(self, alpha=1, gamma=2, reduction='mean'):
+        """
+        :param alpha: Weighting factor for class imbalance (set to 1 if not needed)
+        :param gamma: Focusing parameter (higher = more focus on hard examples)
+        :param reduction: 'mean' (default) or 'sum' for loss aggregation
+        """
+        super(FocalLoss, self).__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+        self.reduction = reduction
+
+    def forward(self, inputs, targets):
+        """
+        :param inputs: Predictions (logits before softmax for multi-class, probability for binary)
+        :param targets: Ground truth labels
+        """
+        ce_loss = F.cross_entropy(inputs, targets, reduction="none")  # Compute standard CE loss
+        p_t = torch.exp(-ce_loss)  # Get softmax probabilities
+        focal_loss = self.alpha * (1 - p_t) ** self.gamma * ce_loss  # Apply focal weighting
+
+        if self.reduction == 'mean':
+            return focal_loss.mean()
+        elif self.reduction == 'sum':
+            return focal_loss.sum()
+        return focal_loss
 
 class ccnModel(nn.Module):
     def __init__(self):
@@ -93,15 +121,16 @@ list_o_transformation = v2.Compose([
     v2.ToTensor(),
     v2.GaussianBlur(kernel_size=3, sigma=5), 
     v2.RandomGrayscale(p=0.3),
-    v2.ColorJitter(brightness=(0.5, 1.5))   # *  Possibly change the Hue, Saturation, and Contrast
-
+    v2.ColorJitter(brightness=(0.5, 1.5), saturation =(1, 5), hue=(-0.5, 0.5), contrast=(1,5)),   # *  Possibly change the Hue, Saturation, and Contrast
+    v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    
                                             # of the imgs  *
 ])
 
 # Create out ImageFolder Classes out of our dataset
 # Test Simple is a small (~60) set of imgs 
 # Train and Test are our actual datasets 
-testSimpleImgs = torchImg.ImageFolder(root="dataset2-master/images/TEST_SIMPLE", transform=list_o_transformation,)
+testSimpleImgs = torchImg.ImageFolder(root="dataset2-master/images/TEST_SIMPLE", transform=list_o_transformation)
 TrainImgs = torchImg.ImageFolder(root="dataset2-master/images/TRAIN", transform=list_o_transformation)
 TestImgs = torchImg.ImageFolder(root="dataset2-master/images/TEST", transform=list_o_transformation)
 
@@ -111,7 +140,7 @@ trainingData = DataLoader(TrainImgs, batch_size=32, shuffle=True)
 testData = DataLoader(TestImgs, batch_size=32, shuffle=True)
 
 EPOCH = 100 # Epoch used to run through the model
-lr = 0.001 # Learning rate for our optimizer
+lr = 0.0001 # Learning rate for our optimizer
 
 Img_Model = ccnModel()
 device = ''
@@ -122,9 +151,9 @@ else:
 
 Img_Model.to(device)
 
-lossFunc = nn.CrossEntropyLoss()
+lossFunc = FocalLoss(alpha=0.25, gamma=2.0)
 
-optimizer = optim.Adam(Img_Model.parameters(), lr=lr)
+optimizer = optim.Adam(Img_Model.parameters(), lr=lr, weight_decay= 0.01)
 
 
 """
