@@ -8,10 +8,11 @@ import torch
 import torch.optim as optim
 import wandb
 import torch.nn.functional as F
+from PIL import Image
 
 #This should initalize the wandb so that it can be graph and compared to other runs
 run = wandb.init(project="Blood-Sample-Disease-Project", name="Run")
-Labels = ["EOSINOPHIL", "LYMPHOCYTE", "MONOCYTE", "NEUTROPHIL"]
+
 
 def compute_accuracy(predictions, labels):
     predicted_classes = torch.argmax(predictions, dim=1)  # Get predicted class indices
@@ -139,10 +140,11 @@ testSimpleData = DataLoader(testSimpleImgs, batch_size=32, shuffle=True)
 trainingData = DataLoader(TrainImgs, batch_size=32, shuffle=True)
 testData = DataLoader(TestImgs, batch_size=32, shuffle=True)
 
-EPOCH = 100 # Epoch used to run through the model
+EPOCH = 50 # Epoch used to run through the model
 lr = 0.0001 # Learning rate for our optimizer
 
 Img_Model = ccnModel()
+
 device = ''
 if torch.cuda.is_available():
     device = 'cuda'
@@ -172,8 +174,6 @@ optimizer = optim.Adam(Img_Model.parameters(), lr=lr, weight_decay= 0.01)
         optimizer.zero_grad()  
 """
 
-
-
 # Train: Run through the epoch and batches and also logs it into the wandb
 for i in range(EPOCH):
     for idx,(image, label) in enumerate(trainingData):
@@ -186,20 +186,26 @@ for i in range(EPOCH):
 
         print(f"Epoch:: {i}   Loss:: {loss}   Accuracy:: {accuracy}%  Image:: {image.shape}")
 
-        run.log({"train loss": loss, "index": idx})
+        run.log({"train loss": loss, "accruacy": accuracy})
         loss.backward()                                  
         optimizer.step()                                 
         optimizer.zero_grad() 
  
 
-'''
-# Test: Test loop
-for image, label in testData:
-    prediction = Img_Model(image)
-    loss = lossFunc(prediction, label)
-    accuracy = compute_accuracy(prediction, label)
 
-    print(f"Loss:: {loss}   Accuracy::{accuracy}  Image:: {image.shape}")
-    run.log({"test loss": loss})
-    
-'''
+# Test: Test loop
+for i in range(EPOCH):
+    for image, label in testData:
+        prediction = Img_Model(image)
+        loss = lossFunc(prediction, label)
+        accuracy = compute_accuracy(prediction, label)
+
+        print(f"Loss:: {loss}   Loss:: {loss}  Accuracy::{accuracy}  Image:: {image.shape}")
+        run.log({"test loss": loss, "accuracy": accuracy})
+
+#Comment if you don't want to save
+torch.save(Img_Model.state_dict(), "ADD PATH") #ADD PATH HERE
+
+
+
+
