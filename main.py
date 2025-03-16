@@ -9,10 +9,6 @@ import torch.optim as optim
 import wandb
 import torch.nn.functional as F
 
-#This should initalize the wandb so that it can be graph and compared to other runs
-run = wandb.init(project="Blood-Sample-Disease-Project", name="Run")
-Labels = ["EOSINOPHIL", "LYMPHOCYTE", "MONOCYTE", "NEUTROPHIL"]
-
 def compute_accuracy(predictions, labels):
     predicted_classes = torch.argmax(predictions, dim=1)  # Get predicted class indices
     correct = (predicted_classes == labels).sum().item()  # Count correct predictions
@@ -102,86 +98,88 @@ class ccnModel(nn.Module):
         
         return final
 
-# List of transformations 
-# Gausian Blur 
-# Random GrayScale
-# ColorJitter
-list_o_transformation = v2.Compose([
-    v2.ToTensor(),
-    v2.GaussianBlur(kernel_size=3, sigma=5), 
-    v2.RandomGrayscale(p=0.3),
-    v2.ColorJitter(brightness=(0.5, 1.5), saturation =(1, 5), hue=(-0.5, 0.5), contrast=(1,5)),   # *  Possibly change the Hue, Saturation, and Contrast
-    v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+if __name__ == "__main__":
+    #This should initalize the wandb so that it can be graph and compared to other runs
+    run = wandb.init(project="Blood-Sample-Disease-Project", name="Run")
+    Labels = ["EOSINOPHIL", "LYMPHOCYTE", "MONOCYTE", "NEUTROPHIL"]
+
+    # List of transformations 
+    # Gausian Blur 
+    # Random GrayScale
+    # ColorJitter
+    list_o_transformation = v2.Compose([
+        v2.ToTensor(),
+        v2.GaussianBlur(kernel_size=3, sigma=5), 
+        v2.RandomGrayscale(p=0.3),
+        v2.ColorJitter(brightness=(0.5, 1.5), saturation =(1, 5), hue=(-0.5, 0.5), contrast=(1,5)),   # *  Possibly change the Hue, Saturation, and Contrast
+        v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+
+                                                # of the imgs  *
+    ])
+
+    # Create out ImageFolder Classes out of our dataset
+    # Test Simple is a small (~60) set of imgs 
+    # Train and Test are our actual datasets 
+    testSimpleImgs = torchImg.ImageFolder(root="dataset2-master/images/TEST_SIMPLE", transform=list_o_transformation)
+    TrainImgs = torchImg.ImageFolder(root="dataset2-master/images/TRAIN", transform=list_o_transformation)
+    TestImgs = torchImg.ImageFolder(root="dataset2-master/images/TEST", transform=list_o_transformation)
+
+    # Create the Dataloaders that will go through our dataset.
+    testSimpleData = DataLoader(testSimpleImgs, batch_size=32, shuffle=True, pin_memory=True)
+    trainingData = DataLoader(TrainImgs, batch_size=32, shuffle=True, pin_memory=True, num_workers=2)
+    testData = DataLoader(TestImgs, batch_size=32, shuffle=True, pin_memory=True)
+
+
+    EPOCH = 10 # Epoch used to run through the model
+    lr = 0.0001 # Learning rate for our optimizer
+
+    Img_Model = ccnModel()
+    device = ''
+    if torch.cuda.is_available():
+        device = 'cuda'
+    else:
+        device = 'cpu' 
+
+    torch.backends.cudnn.benchmark = True  # Speeds up training
+    torch.cuda.empty_cache()  # Clears unused memory    
+
+    Img_Model = Img_Model.to(device)
+    print(next(Img_Model.parameters()).device)
+
+    lossFunc = FocalLoss(alpha=0.25, gamma=2.0)
+
+    optimizer = optim.Adam(Img_Model.parameters(), lr=lr)
+
+    # Train: Run through the epoch and batches and also logs it into the wandb
+    for i in range(EPOCH):
+        for idx,(image, label) in enumerate(trainingData):
+            image = image.to(device, dtype=torch.float32, non_blocking=True)
+            label = label.to(device, dtype=torch.long, non_blocking=True)
+
+            prediction = Img_Model(image)
+            loss = lossFunc(prediction, label)
+
+            accuracy = compute_accuracy(prediction, label)
+
+            print(f"Epoch:: {i}   Loss:: {loss}   Accuracy:: {accuracy}%  Image:: {image.shape}")
+
+            run.log({"train loss": loss, "index": idx})
+            loss.backward()                                  
+            optimizer.step()                                 
+            optimizer.zero_grad() 
     
-                                            # of the imgs  *
-])
+    # # Test: Test loop
+    # for i in range(EPOCH):
+    #     for image, label in testData:
+    #         prediction = Img_Model(image)
+    #         loss = lossFunc(prediction, label)
+    #         accuracy = compute_accuracy(prediction, label)
 
-# Create out ImageFolder Classes out of our dataset
-# Test Simple is a small (~60) set of imgs 
-# Train and Test are our actual datasets 
-testSimpleImgs = torchImg.ImageFolder(root="dataset2-master/images/TEST_SIMPLE", transform=list_o_transformation)
-TrainImgs = torchImg.ImageFolder(root="dataset2-master/images/TRAIN", transform=list_o_transformation)
-TestImgs = torchImg.ImageFolder(root="dataset2-master/images/TEST", transform=list_o_transformation)
-
-# Create the Dataloaders that will go through our dataset.
-testSimpleData = DataLoader(testSimpleImgs, batch_size=32, shuffle=True, pin_memory=True)
-trainingData = DataLoader(TrainImgs, batch_size=32, shuffle=True, pin_memory=True, num_workers=2)
-testData = DataLoader(TestImgs, batch_size=32, shuffle=True, pin_memory=True)
-
-
-EPOCH = 10 # Epoch used to run through the model
-lr = 0.0001 # Learning rate for our optimizer
-
-Img_Model = ccnModel()
-device = ''
-if torch.cuda.is_available():
-    device = 'cuda'
-else:
-    device = 'cpu' 
-
-torch.backends.cudnn.benchmark = True  # Speeds up training
-torch.cuda.empty_cache()  # Clears unused memory    
-
-Img_Model = Img_Model.to(device)
-print(next(Img_Model.parameters()).device)
-
-lossFunc = FocalLoss(alpha=0.25, gamma=2.0)
-
-optimizer = optim.Adam(Img_Model.parameters(), lr=lr)
-
-# Train: Run through the epoch and batches and also logs it into the wandb
-for i in range(EPOCH):
-    for idx,(image, label) in enumerate(trainingData):
-        image = image.to(device, dtype=torch.float32, non_blocking=True)
-        label = label.to(device, dtype=torch.long, non_blocking=True)
-
-        prediction = Img_Model(image)
-        loss = lossFunc(prediction, label)
-
-        accuracy = compute_accuracy(prediction, label)
-
-        print(f"Epoch:: {i}   Loss:: {loss}   Accuracy:: {accuracy}%  Image:: {image.shape}")
-
-        run.log({"train loss": loss, "index": idx})
-        loss.backward()                                  
-        optimizer.step()                                 
-        optimizer.zero_grad() 
- 
-# # Test: Test loop
-# for i in range(EPOCH):
-#     for image, label in testData:
-#         prediction = Img_Model(image)
-#         loss = lossFunc(prediction, label)
-#         accuracy = compute_accuracy(prediction, label)
-
-#         print(f"Loss:: {loss}   Loss:: {loss}  Accuracy::{accuracy}  Image:: {image.shape}")
-#         run.log({"test loss": loss, "accuracy": accuracy})
+    #         print(f"Loss:: {loss}   Loss:: {loss}  Accuracy::{accuracy}  Image:: {image.shape}")
+    #         run.log({"test loss": loss, "accuracy": accuracy})
 
 
 
-# #Comment if you don't want to save
-# torch.save(Img_Model.state_dict(), "ADD PATH") #ADD PATH HERE
-
-
-
-
+    # #Comment if you don't want to save
+    # torch.save(Img_Model.state_dict(), "ADD PATH") #ADD PATH HERE
+    

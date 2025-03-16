@@ -29,13 +29,13 @@ image = image.unsqueeze(0).to(device)
 with torch.no_grad():  # Disable gradient calculation for inference
     prediction = Img_Model(image)
 
-softmax = nn.Softmax(dim = 1)
-prediction = softmax(prediction)
+    softmax = nn.Softmax(dim = 1)
+    prediction = softmax(prediction)
 
-softmax_output = prediction.cpu().numpy() * 100
-for i in range(len(softmax_output)):
-    print(f"{Labels[i]}: {softmax_output[i]}%")
+    softmax_output = prediction.cpu().numpy() * 100
+    for i in range(len(softmax_output)):
+        print(f"{Labels[i]}: {softmax_output[i]}%")
 
 
-predicted_class = torch.argmax(prediction, dim=1).item()
-print("Predicted Class:", Labels[predicted_class])
+    predicted_class = torch.argmax(prediction, dim=1).item()
+    print("Predicted Class:", Labels[predicted_class])
