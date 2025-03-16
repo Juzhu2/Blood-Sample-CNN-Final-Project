@@ -8,11 +8,10 @@ import torch
 import torch.optim as optim
 import wandb
 import torch.nn.functional as F
-from PIL import Image
 
 #This should initalize the wandb so that it can be graph and compared to other runs
 run = wandb.init(project="Blood-Sample-Disease-Project", name="Run")
-
+Labels = ["EOSINOPHIL", "LYMPHOCYTE", "MONOCYTE", "NEUTROPHIL"]
 
 def compute_accuracy(predictions, labels):
     predicted_classes = torch.argmax(predictions, dim=1)  # Get predicted class indices
@@ -39,7 +38,7 @@ class FocalLoss(nn.Module):
         :param inputs: Predictions (logits before softmax for multi-class, probability for binary)
         :param targets: Ground truth labels
         """
-        ce_loss = F.cross_entropy(inputs, targets, reduction="none")  # Compute standard CE loss
+        ce_loss = F.cross_entropy(inputs.to(device), targets.to(device), reduction="none")  # Compute standard CE loss
         p_t = torch.exp(-ce_loss)  # Get softmax probabilities
         focal_loss = self.alpha * (1 - p_t) ** self.gamma * ce_loss  # Apply focal weighting
 
@@ -60,20 +59,17 @@ class ccnModel(nn.Module):
         # Convultion layers for CNN
         self.layer1 = nn.Conv2d(in_channels=3, out_channels=10, kernel_size=5, padding=2)
         self.layer2 = nn.Conv2d(in_channels=10,out_channels=50, kernel_size=5, padding=2)
-        self.layer3 = nn.Conv2d(in_channels=50,out_channels=100, kernel_size=5, padding= 2)
-        self.layer4 = nn.Conv2d(in_channels=100,out_channels=200, kernel_size=5, padding=2) 
-        self.layer5 = nn.Conv2d(in_channels=200,out_channels=300, kernel_size=5, padding=2) 
-        self.layer6 = nn.Conv2d(in_channels=300,out_channels=100, kernel_size=5, padding=2) 
+        self.layer3 = nn.Conv2d(in_channels=50,out_channels=30, kernel_size=5, padding= 2)
+        self.layer4 = nn.Conv2d(in_channels=30,out_channels=10, kernel_size=5, padding=2) 
+
 
         # This is the linear layer which we would later use after flattening our convolution layers at the end
-        self.linearlayer1 = nn.Linear(100 * 30 * 40, 5000)
+        self.linearlayer1 = nn.Linear(10 * 60 * 80, 5000)
         self.linearlayer2 = nn.Linear(5000, 3000)
-        self.linearlayer3 = nn.Linear(3000, 2000)
-        self.linearlayer4 = nn.Linear(2000, 1000)
-        self.linearlayer5 = nn.Linear(1000, 500)
-        self.linearlayer6 = nn.Linear(500, 250)
-        self.linearlayer7 = nn.Linear(250, 70)
-        self.linearlayer8 = nn.Linear(70, 4)
+        self.linearlayer3 = nn.Linear(3000, 1000)
+        self.linearlayer4 = nn.Linear(1000, 100)
+        self.linearlayer5 = nn.Linear(100, 4)
+ 
 
     def forward(self, input):
         
@@ -83,16 +79,13 @@ class ccnModel(nn.Module):
         partial = self.layer2(partial)
         partial = self.activation(partial)
         partial = self.pooling(partial) 
+
         partial = self.layer3(partial)
         partial = self.activation(partial)
         partial = self.layer4(partial)
         partial = self.activation(partial)
         partial = self.pooling(partial)
-        partial = self.layer5(partial)
-        partial = self.activation(partial)
-        partial = self.layer6(partial)
-        partial = self.activation(partial)
-        partial = self.pooling(partial)
+ 
         
         # Flattens the convolution layer in which we pass through the linear layer that would output 4 values
         partial = torch.flatten(partial, start_dim=1)
@@ -104,13 +97,8 @@ class ccnModel(nn.Module):
         partial = self.activation(partial)
         partial = self.linearlayer4(partial)
         partial = self.activation(partial)
-        partial = self.linearlayer5(partial)
-        partial = self.activation(partial)
-        partial = self.linearlayer6(partial)
-        partial = self.activation(partial)
-        partial = self.linearlayer7(partial)
-        partial = self.activation(partial)
-        final = self.linearlayer8(partial)
+        final = self.linearlayer5(partial)
+      
         
         return final
 
@@ -136,49 +124,37 @@ TrainImgs = torchImg.ImageFolder(root="dataset2-master/images/TRAIN", transform=
 TestImgs = torchImg.ImageFolder(root="dataset2-master/images/TEST", transform=list_o_transformation)
 
 # Create the Dataloaders that will go through our dataset.
-testSimpleData = DataLoader(testSimpleImgs, batch_size=32, shuffle=True)
-trainingData = DataLoader(TrainImgs, batch_size=32, shuffle=True)
-testData = DataLoader(TestImgs, batch_size=32, shuffle=True)
+testSimpleData = DataLoader(testSimpleImgs, batch_size=32, shuffle=True, pin_memory=True)
+trainingData = DataLoader(TrainImgs, batch_size=32, shuffle=True, pin_memory=True, num_workers=2)
+testData = DataLoader(TestImgs, batch_size=32, shuffle=True, pin_memory=True)
 
-EPOCH = 50 # Epoch used to run through the model
+
+EPOCH = 10 # Epoch used to run through the model
 lr = 0.0001 # Learning rate for our optimizer
 
 Img_Model = ccnModel()
-
 device = ''
 if torch.cuda.is_available():
     device = 'cuda'
 else:
     device = 'cpu' 
 
-Img_Model.to(device)
+torch.backends.cudnn.benchmark = True  # Speeds up training
+torch.cuda.empty_cache()  # Clears unused memory    
+
+Img_Model = Img_Model.to(device)
+print(next(Img_Model.parameters()).device)
 
 lossFunc = FocalLoss(alpha=0.25, gamma=2.0)
 
-optimizer = optim.Adam(Img_Model.parameters(), lr=lr, weight_decay= 0.01)
-
-
-"""
-# Loops that prints the index with the img and label shapes.cd
-# Test Simple: test loop
-    for idx,(image, label) in enumerate(testSimpleData):
-        prediction = Img_Model(image)
-        loss = lossFunc(prediction, label)
-        
-        print(f"loss: {loss}")
-        print(f"idx: {idx}")
-        print(f'Image: {image.shape}')
-        
-        loss.backward()                                  
-        optimizer.step()                                 
-        optimizer.zero_grad()  
-"""
+optimizer = optim.Adam(Img_Model.parameters(), lr=lr)
 
 # Train: Run through the epoch and batches and also logs it into the wandb
 for i in range(EPOCH):
     for idx,(image, label) in enumerate(trainingData):
-        image = image.to(device)
-        label = label.to(device)
+        image = image.to(device, dtype=torch.float32, non_blocking=True)
+        label = label.to(device, dtype=torch.long, non_blocking=True)
+
         prediction = Img_Model(image)
         loss = lossFunc(prediction, label)
 
@@ -186,25 +162,25 @@ for i in range(EPOCH):
 
         print(f"Epoch:: {i}   Loss:: {loss}   Accuracy:: {accuracy}%  Image:: {image.shape}")
 
-        run.log({"train loss": loss, "accruacy": accuracy})
+        run.log({"train loss": loss, "index": idx})
         loss.backward()                                  
         optimizer.step()                                 
         optimizer.zero_grad() 
  
+# # Test: Test loop
+# for i in range(EPOCH):
+#     for image, label in testData:
+#         prediction = Img_Model(image)
+#         loss = lossFunc(prediction, label)
+#         accuracy = compute_accuracy(prediction, label)
+
+#         print(f"Loss:: {loss}   Loss:: {loss}  Accuracy::{accuracy}  Image:: {image.shape}")
+#         run.log({"test loss": loss, "accuracy": accuracy})
 
 
-# Test: Test loop
-for i in range(EPOCH):
-    for image, label in testData:
-        prediction = Img_Model(image)
-        loss = lossFunc(prediction, label)
-        accuracy = compute_accuracy(prediction, label)
 
-        print(f"Loss:: {loss}   Loss:: {loss}  Accuracy::{accuracy}  Image:: {image.shape}")
-        run.log({"test loss": loss, "accuracy": accuracy})
-
-#Comment if you don't want to save
-torch.save(Img_Model.state_dict(), "ADD PATH") #ADD PATH HERE
+# #Comment if you don't want to save
+# torch.save(Img_Model.state_dict(), "ADD PATH") #ADD PATH HERE
 
 
 
