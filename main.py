@@ -50,7 +50,7 @@ class ccnModel(nn.Module):
         # Initalizing the acitivation and pooling
         self.activation  = nn.ReLU()
         self.pooling = nn.MaxPool2d(2,2)
-    
+        self.dropout = nn.Dropout(0.2) 
 
         # Convultion layers for CNN
         self.layer1 = nn.Conv2d(in_channels=3, out_channels=10, kernel_size=5, padding=2)
@@ -75,12 +75,14 @@ class ccnModel(nn.Module):
         partial = self.layer2(partial)
         partial = self.activation(partial)
         partial = self.pooling(partial) 
+        partial = self.dropout(partial)
 
         partial = self.layer3(partial)
         partial = self.activation(partial)
         partial = self.layer4(partial)
         partial = self.activation(partial)
         partial = self.pooling(partial)
+        partial = self.dropout(partial)
  
         
         # Flattens the convolution layer in which we pass through the linear layer that would output 4 values
