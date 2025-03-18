@@ -10,7 +10,7 @@ import wandb
 import torch.nn.functional as F
 import torch.optim.lr_scheduler as lr_scheduler
 
-
+# This helps us compute what our accruacy for every batch it runs
 def compute_accuracy(predictions, labels):
     predicted_classes = torch.argmax(predictions, dim=1)  # Get predicted class indices
     correct = (predicted_classes == labels).sum().item()  # Count correct predictions
@@ -18,16 +18,10 @@ def compute_accuracy(predictions, labels):
     accuracy = (correct / total) * 100  # Convert to percentage
     return accuracy
 
-
-
-
+#This is a variation of Cross Entropy Loss which uses Cross Entropy Loss but multiplies it by alpha and exponential by gamma
 class FocalLoss(nn.Module):
     def __init__(self, alpha=1, gamma=2, reduction='mean'):
-        """
-        :param alpha: Weighting factor for class imbalance (set to 1 if not needed)
-        :param gamma: Focusing parameter (higher = more focus on hard examples)
-        :param reduction: 'mean' (default) or 'sum' for loss aggregation
-        """
+
         super(FocalLoss, self).__init__()
         self.alpha = alpha
         self.gamma = gamma
@@ -35,15 +29,12 @@ class FocalLoss(nn.Module):
 
 
     def forward(self, inputs, targets):
-        """
-        :param inputs: Predictions (logits before softmax for multi-class, probability for binary)
-        :param targets: Ground truth labels
-        """
+
         ce_loss = F.cross_entropy(inputs.to(device), targets.to(device), reduction="none")  # Compute standard CE loss
         p_t = torch.exp(-ce_loss)  # Get softmax probabilities
         focal_loss = self.alpha * (1 - p_t) ** self.gamma * ce_loss  # Apply focal weighting
 
-
+        # You can set depending on who you what your focal loss to turn out. Either mean or sum
         if self.reduction == 'mean':
             return focal_loss.mean()
         elif self.reduction == 'sum':
@@ -66,9 +57,6 @@ class ccnModel(nn.Module):
         self.layer3 = nn.Conv2d(in_channels=32,out_channels=64, kernel_size=5, padding= 2)
         self.layer4 = nn.Conv2d(in_channels=64,out_channels=2, kernel_size=5, padding=2)
 
-
-
-
         # This is the linear layer which we would later use after flattening our convolution layers at the end
         self.linearlayer1 = nn.Linear(2 * 60 * 80, 1024)  
         self.linearlayer2 = nn.Linear(1024, 512)
@@ -85,8 +73,6 @@ class ccnModel(nn.Module):
         partial = self.activation(partial)
         partial = self.pooling(partial)
         partial = self.dropout(partial)
-
-
         partial = self.layer3(partial)
         partial = self.activation(partial)
         partial = self.layer4(partial)
@@ -97,21 +83,13 @@ class ccnModel(nn.Module):
         partial = torch.flatten(partial, start_dim=1)
         partial = self.linearlayer1(partial)
         partial = self.activation(partial)
-
-
         partial = self.linearlayer2(partial)
         partial = self.activation(partial)
-
-
         partial = self.linearlayer3(partial)
         partial = self.activation(partial)
-
-
         partial = self.linearlayer4(partial)
         partial = self.activation(partial)
         partial = self.dropout(partial)
-
-
         final = self.linearlayer5(partial)
      
        
@@ -148,21 +126,16 @@ if __name__ == "__main__":
     TestImgs = torchImg.ImageFolder(root="dataset2-master/images/TEST", transform=list_o_transformation)
 
 
-    # Create the Dataloaders that will go through our dataset.
+    # Create the Dataloaders that will go through our dataset. (32 batches)
     testSimpleData = DataLoader(testSimpleImgs, batch_size=32, shuffle=True, pin_memory=True)
     trainingData = DataLoader(TrainImgs, batch_size=32, shuffle=True, pin_memory=True, num_workers=2)
     testData = DataLoader(TestImgs, batch_size=32, shuffle=True, pin_memory=True)
 
-
-
-
     EPOCH = 18 # Epoch used to run through the model
-    # FOR 3/17 TEST OUT 16 EPOCH
-
 
     lr = 3e-5# Learning rate for our optimizer
 
-
+    # This switches between cuba(GPU) or CPU depending if our GPU is avaliable or not
     Img_Model = ccnModel()
     device = ''
     if torch.cuda.is_available():
@@ -170,66 +143,63 @@ if __name__ == "__main__":
     else:
         device = 'cpu'
 
-
+    # This helps our model run faster
     torch.backends.cudnn.benchmark = True  # Speeds up training
     torch.cuda.empty_cache()  # Clears unused memory    
 
-
+    # This is a testbench to see what our model is actually using before it acutally runs the code
     Img_Model = Img_Model.to(device)
     print(next(Img_Model.parameters()).device)
 
-
-    lossFunc = FocalLoss(alpha=0.25, gamma=1.0)
+    lossFunc = FocalLoss(alpha=0.25, gamma=2.0)
     optimizer = optim.Adam(Img_Model.parameters(), lr=lr, weight_decay=0.0001)
     # scheduler = lr_scheduler.LinearLR(optimizer=optimizer, start_factor=1.0, end_factor=0.5, total_iters=20)
+
     # Train: Run through the epoch and batches and also logs it into the wandb
     for i in range(EPOCH):
         for idx,(image, label) in enumerate(trainingData):
+            # Allows for our data to be passed from CPU to GPU to be computed faster
             image = image.to(device, dtype=torch.float32, non_blocking=True)
             label = label.to(device, dtype=torch.long, non_blocking=True)
-
 
             prediction = Img_Model(image)
             loss = lossFunc(prediction, label)
 
-
+            # Calculates our accuracy using the accuracy fucntion created earlier
             accuracy = compute_accuracy(prediction, label)
 
-
+            # Prints our data into termnial to see how our model runs
             print(f"Epoch:: {i}   Loss:: {loss}   Accuracy:: {accuracy}%  Image:: {image.shape}")
 
-
+            # Uploads data in wandb so it can be tracked and saved
             run.log({"train loss": loss, "train accuracy": accuracy})
             loss.backward()                                  
             optimizer.step()                                
             optimizer.zero_grad()
         # scheduler.step()
    
-    # Test: Test loop
+    # Test: Test if our unseen data matches what we have learned
     with torch.no_grad():
         for i in range(EPOCH):
             for image, label in testData:
+                # Allows for our data to be passed from CPU to GPU to be computed faster
                 image = image.to(device, dtype=torch.float32, non_blocking=True)
                 label = label.to(device, dtype=torch.long, non_blocking=True)
 
-
-
-
                 prediction = Img_Model(image)
                 loss = lossFunc(prediction, label)
+
+                # Calculates our accuracy using the accuracy fucntion created earlier
                 accuracy = compute_accuracy(prediction, label)
 
-
+                # Uploads data in wandb so it can be tracked and saved
                 print(f"Loss:: {loss}  Accuracy::{accuracy}  Image:: {image.shape}")
                 run.log({"test loss": loss, "test accuracy": accuracy})
 
 
 
-
-
-
     # if you don't want to save comment
-    PATH = ''
-    torch.save(Img_Model.state_dict(), PATH) #ADD PATH HERE
+    PATH = 'PATH'
+    torch.save(Img_Model.state_dict(), PATH) #Saves model so it can be used for later cases
    
 
