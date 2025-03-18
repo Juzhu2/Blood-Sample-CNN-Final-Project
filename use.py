@@ -11,13 +11,15 @@ from main import ccnModel
 
 # Labels for when we want to indentify which cell is whic
 Labels = ["EOSINOPHIL", "LYMPHOCYTE", "MONOCYTE", "NEUTROPHIL"]
-image = Image.open("ADD PATH HERE") #Depending on what images you want to use
+image = Image.open("E_0_2313.jpeg") #Depending on what images you want to use
  
 
 Img_Model = ccnModel()
 
 # Selects the mode you want to use
-Img_Model.load_state_dict(torch.load("ADD PATH NAME HERE", weights_only=True))
+state_dict = torch.load("Blood-Test-Model-Ok run", map_location=torch.device('cpu'))
+Img_Model.load_state_dict(state_dict)
+
 
 
 # Converts our image into a tensor so it can be put into the model
@@ -37,9 +39,13 @@ with torch.no_grad():  # Disable gradient calculation for inference
     prediction = softmax(prediction)
 
     # Puts it into percentage and prints it out
-    softmax_output = prediction.numpy() * 100
-    for i in range(len(softmax_output)):
-        print(f"{Labels[i]}: {softmax_output[i]}%")
+# Convert the tensor to a NumPy array and flatten it
+    softmax_output = prediction.numpy().flatten() * 100
+
+# Print class probabilities
+    for i, prob in enumerate(softmax_output):
+        print(f"{Labels[i]}: {prob:.2f}%")
+
 
     # Gets the maximum out of all of it and chooses the label according to the max and prints out our prediction 
     predicted_class = torch.argmax(prediction, dim=1).item()
